@@ -29,6 +29,7 @@ import (
 	"github.com/fatedier/frp/pkg/auth"
 	v1 "github.com/fatedier/frp/pkg/config/v1"
 	"github.com/fatedier/frp/pkg/msg"
+	"github.com/fatedier/frp/pkg/netquality"
 	"github.com/fatedier/frp/pkg/proto/wire"
 	netpkg "github.com/fatedier/frp/pkg/util/net"
 	"github.com/fatedier/frp/pkg/util/version"
@@ -47,7 +48,8 @@ type controlSessionDialer struct {
 }
 
 func (d *controlSessionDialer) Dial(previousRunID string) (*SessionContext, error) {
-	connector := d.connectorCreator(d.ctx, d.common)
+	stats := netquality.NewStats()
+	connector := &qualityConnector{Connector: d.connectorCreator(d.ctx, d.common), stats: stats}
 	if err := connector.Open(); err != nil {
 		return nil, err
 	}
@@ -93,6 +95,7 @@ func (d *controlSessionDialer) Dial(previousRunID string) (*SessionContext, erro
 
 	success = true
 	return &SessionContext{
+		Quality:        stats,
 		Common:         d.common,
 		RunID:          loginRespMsg.RunID,
 		Conn:           msg.NewConn(conn, msg.NewReadWriter(controlRW, d.common.Transport.WireProtocol)),

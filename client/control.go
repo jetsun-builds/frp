@@ -17,6 +17,7 @@ package client
 import (
 	"context"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	v1 "github.com/fatedier/frp/pkg/config/v1"
 	"github.com/fatedier/frp/pkg/msg"
 	"github.com/fatedier/frp/pkg/naming"
+	"github.com/fatedier/frp/pkg/netquality"
 	"github.com/fatedier/frp/pkg/transport"
 	"github.com/fatedier/frp/pkg/util/wait"
 	"github.com/fatedier/frp/pkg/util/xlog"
@@ -33,6 +35,7 @@ import (
 )
 
 type SessionContext struct {
+	Quality *netquality.Stats
 	// The client common configuration.
 	Common *v1.ClientCommonConfig
 
@@ -52,6 +55,11 @@ type SessionContext struct {
 }
 
 type Control struct {
+	qualityMu      sync.Mutex
+	qualityPending map[uint64]time.Time
+	qualityUDPOnce sync.Once
+	qualityCtx     context.Context
+	qualityCancel  context.CancelFunc
 	// service context
 	ctx context.Context
 	xl  *xlog.Logger
@@ -89,6 +97,11 @@ func NewControl(ctx context.Context, sessionCtx *SessionContext) (*Control, erro
 		doneCh:     make(chan struct{}),
 	}
 	ctl.lastPong.Store(time.Now())
+	if sessionCtx.Quality == nil {
+		sessionCtx.Quality = netquality.NewStats()
+	}
+	ctl.qualityPending = make(map[uint64]time.Time)
+	ctl.qualityCtx, ctl.qualityCancel = context.WithCancel(ctx)
 
 	ctl.msgDispatcher = msg.NewDispatcher(sessionCtx.Conn)
 	ctl.registerMsgHandlers()
@@ -196,11 +209,15 @@ func (ctl *Control) handlePong(m msg.Message) {
 		return
 	}
 	ctl.lastPong.Store(time.Now())
+	ctl.handleQualityPong(inMsg)
 	xl.Debugf("receive heartbeat from server")
 }
 
 // closeSession closes the control connection.
 func (ctl *Control) closeSession() {
+	if ctl.qualityCancel != nil {
+		ctl.qualityCancel()
+	}
 	ctl.sessionCtx.Conn.Close()
 	ctl.sessionCtx.Connector.Close()
 }
@@ -280,6 +297,7 @@ func (ctl *Control) heartbeatWorker() {
 func (ctl *Control) worker() {
 	xl := ctl.xl
 	go ctl.heartbeatWorker()
+	go ctl.qualityWorker()
 	go ctl.msgDispatcher.Run()
 
 	<-ctl.msgDispatcher.Done()

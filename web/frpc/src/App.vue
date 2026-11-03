@@ -3,7 +3,12 @@
     <header class="header">
       <div class="header-content">
         <div class="brand-section">
-          <button v-if="isMobile" class="hamburger-btn" @click="toggleSidebar" aria-label="Toggle menu">
+          <button
+            v-if="isMobile"
+            class="hamburger-btn"
+            @click="toggleSidebar"
+            aria-label="Toggle menu"
+          >
             <span class="hamburger-icon">&#9776;</span>
           </button>
           <div class="logo-wrapper">
@@ -42,7 +47,10 @@
         @click="closeSidebar"
       />
 
-      <aside class="sidebar" :class="{ 'mobile-open': isMobile && sidebarOpen }">
+      <aside
+        class="sidebar"
+        :class="{ 'mobile-open': isMobile && sidebarOpen }"
+      >
         <nav class="sidebar-nav">
           <router-link
             to="/proxies"
@@ -72,6 +80,7 @@
       </aside>
 
       <main id="content">
+        <NetworkQualityPanel />
         <router-view></router-view>
       </main>
     </div>
@@ -80,6 +89,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import NetworkQualityPanel from './components/NetworkQualityPanel.vue'
 import { useRoute } from 'vue-router'
 import { useDark } from '@vueuse/core'
 import { Moon, Sunny } from '@element-plus/icons-vue'
@@ -102,18 +112,27 @@ const closeSidebar = () => {
 }
 
 // Auto-close sidebar on route change
-watch(() => route.path, () => {
-  if (isMobile.value) {
-    closeSidebar()
-  }
-})
+watch(
+  () => route.path,
+  () => {
+    if (isMobile.value) {
+      closeSidebar()
+    }
+  },
+)
 </script>
 
 <style lang="scss">
 body {
   margin: 0;
-  font-family: ui-sans-serif, -apple-system, system-ui, Segoe UI, Helvetica,
-    Arial, sans-serif;
+  font-family:
+    ui-sans-serif,
+    -apple-system,
+    system-ui,
+    Segoe UI,
+    Helvetica,
+    Arial,
+    sans-serif;
 }
 
 *,
@@ -123,7 +142,8 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
 }
@@ -419,8 +439,9 @@ html.dark .el-switch {
 .el-select-dropdown {
   border-radius: 12px !important;
   border: 1px solid $color-border-light !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
-              0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
   padding: 4px !important;
 }
 

@@ -20,10 +20,13 @@ import (
 	"time"
 
 	"k8s.io/utils/clock"
+
+	"github.com/fatedier/frp/pkg/netquality"
 )
 
 // ClientInfo captures metadata about a connected frpc instance.
 type ClientInfo struct {
+	Quality          *netquality.Snapshot
 	Key              string
 	User             string
 	RawClientID      string
@@ -116,6 +119,7 @@ func (cr *ClientRegistry) RegisterWithControlID(
 		delete(cr.runIndex, info.RunID)
 	}
 
+	info.Quality = nil
 	info.RawClientID = rawClientID
 	info.RunID = runID
 	info.ControlID = controlID
@@ -169,7 +173,22 @@ func setClientOffline(info *ClientInfo, now time.Time) {
 	info.RunID = ""
 	info.ControlID = 0
 	info.Online = false
+	info.Quality = nil
 	info.DisconnectedAt = now
+}
+
+// UpdateQuality only accepts reports from the current authenticated generation.
+func (cr *ClientRegistry) UpdateQuality(runID string, controlID uint64, snapshot netquality.Snapshot) {
+	cr.mu.Lock()
+	defer cr.mu.Unlock()
+	key, ok := cr.runIndex[runID]
+	if !ok {
+		return
+	}
+	if info := cr.clients[key]; info != nil && info.Online && info.RunID == runID && info.ControlID == controlID {
+		snapshot.UpdatedAt = cr.clock.Now().Unix()
+		info.Quality = &snapshot
+	}
 }
 
 // List returns a snapshot of all known clients.

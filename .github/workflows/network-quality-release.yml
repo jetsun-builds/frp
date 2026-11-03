@@ -1,0 +1,106 @@
+name: Network quality release
+
+on:
+  push:
+    branches: [codex/network-quality]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: network-quality-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux_amd64
+          - runner: windows-latest
+            platform: windows_amd64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build and test both dashboards
+        working-directory: web
+        shell: bash
+        run: |
+          npm ci
+          npm run lint:check --workspace frps
+          npm run lint:check --workspace frpc
+          npm run test:unit
+          npm run build --workspace frps
+          npm run build --workspace frpc
+      - name: Unit tests and vet
+        shell: bash
+        run: |
+          go test ./assets/... ./cmd/... ./client/... ./server/... ./pkg/...
+          go vet ./...
+      - name: Race tests
+        if: runner.os == 'Linux'
+        run: go test -race ./pkg/netquality ./server/registry ./client ./server ./pkg/msg
+      - name: Build binaries
+        shell: bash
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          mkdir -p bin
+          ext=''
+          if [ "$RUNNER_OS" = Windows ]; then ext='.exe'; fi
+          go build -trimpath -ldflags '-s -w' -tags frps -o "bin/frps${ext}" ./cmd/frps
+          go build -trimpath -ldflags '-s -w' -tags frpc -o "bin/frpc${ext}" ./cmd/frpc
+      - name: Network quality integration tests
+        run: python hack/test-network-quality.py
+      - name: End-to-end and compatibility tests
+        if: runner.os == 'Linux'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          make e2e
+          make e2e-compatibility
+          make e2e-compatibility-floor
+      - name: Package release
+        env:
+          FRP_PLATFORM: ${{ matrix.platform }}
+        run: python hack/package-network-quality.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frp-${{ matrix.platform }}
+          path: release/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Publish release and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          cd release
+          sha256sum frp_* > SHA256SUMS
+          cd ..
+          gh release create v0.71.1-network-quality.1 release/* \
+            --target "$GITHUB_SHA" --prerelease \
+            --title 'frp 0.71.1 · Network quality statistics' \
+            --notes-file Release.md

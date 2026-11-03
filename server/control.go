@@ -31,6 +31,7 @@ import (
 	v1 "github.com/fatedier/frp/pkg/config/v1"
 	pkgerr "github.com/fatedier/frp/pkg/errors"
 	"github.com/fatedier/frp/pkg/msg"
+	"github.com/fatedier/frp/pkg/netquality"
 	plugin "github.com/fatedier/frp/pkg/plugin/server"
 	"github.com/fatedier/frp/pkg/transport"
 	"github.com/fatedier/frp/pkg/util/util"
@@ -354,6 +355,7 @@ func (cm *ControlManager) Close() error {
 
 // SessionContext encapsulates the input parameters for creating a new Control.
 type SessionContext struct {
+	QualityUDP *netquality.UDPServer
 	// all resource managers and controllers
 	RC *controller.ResourceController
 	// proxy manager
@@ -386,6 +388,7 @@ const (
 )
 
 type Control struct {
+	qualityToken string
 	// session context
 	sessionCtx *SessionContext
 
@@ -694,6 +697,9 @@ func (ctl *Control) worker() {
 	}()
 
 	<-ctl.msgDispatcher.Done()
+	if ctl.sessionCtx.QualityUDP != nil {
+		ctl.sessionCtx.QualityUDP.Remove(ctl.qualityToken)
+	}
 	ctl.lifecycleMu.Lock()
 	if ctl.state == controlStateRunning {
 		ctl.state = controlStateClosing
@@ -790,7 +796,19 @@ func (ctl *Control) handlePing(m msg.Message) {
 	}
 	ctl.lastPing.Store(time.Now())
 	xl.Debugf("receive heartbeat")
-	_ = ctl.msgDispatcher.Send(&msg.Pong{})
+	pong := &msg.Pong{QualitySequence: inMsg.QualitySequence}
+	if inMsg.QualitySequence != 0 {
+		if ctl.manager != nil && ctl.manager.registry != nil && inMsg.Quality != nil {
+			ctl.manager.registry.UpdateQuality(ctl.runID, uint64(ctl.controlID), *inMsg.Quality)
+		}
+		if ctl.sessionCtx.QualityUDP != nil {
+			if ctl.qualityToken == "" {
+				ctl.qualityToken, _ = ctl.sessionCtx.QualityUDP.Register()
+			}
+			pong.QualityUDPPort, pong.QualityUDPToken = ctl.sessionCtx.QualityUDP.Port(), ctl.qualityToken
+		}
+	}
+	_ = ctl.msgDispatcher.Send(pong)
 }
 
 func (ctl *Control) handleNatHoleVisitor(m msg.Message) {

@@ -15,6 +15,7 @@ _test
 bin/
 packages/
 release/
+release-stage/
 test/bin/
 vendor/
 lastversion/

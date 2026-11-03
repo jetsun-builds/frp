@@ -14,7 +14,7 @@
 
 package version
 
-var version = "0.71.1"
+var version = "0.71.1-network-quality.1"
 
 func Full() string {
 	return version

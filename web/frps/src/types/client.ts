@@ -1,4 +1,7 @@
+import type { NetworkQualityData } from '@shared/network-quality'
+
 export interface ClientInfoData {
+  quality?: NetworkQualityData
   key: string
   user: string
   clientID: string

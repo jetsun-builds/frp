@@ -27,7 +27,11 @@
                   <el-tag v-if="client.version" size="small" type="success"
                     >v{{ client.version }}</el-tag
                   >
-                  <el-tag v-if="client.wireProtocolLabel" size="small" type="info">
+                  <el-tag
+                    v-if="client.wireProtocolLabel"
+                    size="small"
+                    type="info"
+                  >
                     {{ client.wireProtocolLabel }}
                   </el-tag>
                 </div>
@@ -79,6 +83,8 @@
             </div>
           </div>
         </div>
+
+        <NetworkQuality :quality="client.online ? client.quality : null" />
 
         <!-- Proxies Card -->
         <div class="proxies-card">
@@ -160,6 +166,7 @@ import {
 } from '../utils/proxy'
 import { getServerInfo } from '../api/server'
 import ProxyCard from '../components/ProxyCard.vue'
+import NetworkQuality from '@shared/components/NetworkQuality.vue'
 import type { ProxyStatsInfo } from '../types/proxy'
 import type { ServerInfo } from '../types/server'
 
@@ -269,7 +276,9 @@ const convertProxy = async (
   return bp
 }
 
-const convertProxies = async (items: ProxyStatsInfo[]): Promise<BaseProxy[]> => {
+const convertProxies = async (
+  items: ProxyStatsInfo[],
+): Promise<BaseProxy[]> => {
   const converted = await Promise.all(items.map((item) => convertProxy(item)))
   return converted.filter((item): item is BaseProxy => item !== null)
 }
@@ -353,7 +362,9 @@ watch(proxySearch, () => {
   }, 300)
 })
 
+let qualityTimer: ReturnType<typeof setInterval> | undefined
 onUnmounted(() => {
+  clearInterval(qualityTimer)
   clearSearchDebounce()
 })
 
@@ -362,6 +373,14 @@ onMounted(async () => {
   if (!ok || !client.value) return
 
   fetchProxies()
+  qualityTimer = setInterval(async () => {
+    try {
+      const data = await getClientV2(client.value!.key)
+      client.value = new Client(data)
+    } catch {
+      /* Keep last data; stale indicator expires it. */
+    }
+  }, 5000)
 })
 </script>
 
