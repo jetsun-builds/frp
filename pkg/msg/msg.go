@@ -17,6 +17,8 @@ package msg
 import (
 	"net"
 	"reflect"
+
+	"github.com/fatedier/frp/pkg/netquality"
 )
 
 const (
@@ -175,12 +177,17 @@ type NewVisitorConnResp struct {
 }
 
 type Ping struct {
-	PrivilegeKey string `json:"privilege_key,omitempty"`
-	Timestamp    int64  `json:"timestamp,omitempty"`
+	QualitySequence uint64               `json:"quality_sequence,omitempty"`
+	Quality         *netquality.Snapshot `json:"quality,omitempty"`
+	PrivilegeKey    string               `json:"privilege_key,omitempty"`
+	Timestamp       int64                `json:"timestamp,omitempty"`
 }
 
 type Pong struct {
-	Error string `json:"error,omitempty"`
+	QualitySequence uint64 `json:"quality_sequence,omitempty"`
+	QualityUDPPort  int    `json:"quality_udp_port,omitempty"`
+	QualityUDPToken string `json:"quality_udp_token,omitempty"`
+	Error           string `json:"error,omitempty"`
 }
 
 type UDPPacket struct {

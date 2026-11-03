@@ -40,6 +40,7 @@ import (
 	modelmetrics "github.com/fatedier/frp/pkg/metrics"
 	"github.com/fatedier/frp/pkg/msg"
 	"github.com/fatedier/frp/pkg/nathole"
+	"github.com/fatedier/frp/pkg/netquality"
 	plugin "github.com/fatedier/frp/pkg/plugin/server"
 	"github.com/fatedier/frp/pkg/proto/wire"
 	"github.com/fatedier/frp/pkg/ssh"
@@ -80,6 +81,7 @@ func init() {
 
 // Server service
 type Service struct {
+	qualityUDP *netquality.UDPServer
 	// Dispatch connections to different handlers listen on same port
 	muxer *mux.Mux
 
@@ -369,6 +371,13 @@ func NewService(cfg *v1.ServerConfig) (*Service, error) {
 		return nil, fmt.Errorf("create nat hole controller error, %v", err)
 	}
 	svr.rc.NatHoleController = nc
+	if cfg.NetworkQualityUDPPort > 0 {
+		svr.qualityUDP, err = netquality.ListenUDP(net.JoinHostPort(cfg.BindAddr, strconv.Itoa(cfg.NetworkQualityUDPPort)))
+		if err != nil {
+			_ = svr.Close()
+			return nil, fmt.Errorf("listen network quality UDP: %w", err)
+		}
+	}
 	return svr, nil
 }
 
@@ -438,6 +447,9 @@ func (svr *Service) Close() error {
 }
 
 func (svr *Service) closeResources() {
+	if svr.qualityUDP != nil {
+		_ = svr.qualityUDP.Close()
+	}
 	if svr.kcpListener != nil {
 		svr.kcpListener.Close()
 	}
@@ -845,6 +857,7 @@ func (svr *Service) RegisterControl(
 	}
 
 	ctl, err := NewControl(ctx, &SessionContext{
+		QualityUDP:     svr.qualityUDP,
 		RC:             svr.rc,
 		PxyManager:     svr.pxyManager,
 		PluginManager:  svr.pluginManager,

@@ -1,7 +1,10 @@
 import { formatDistanceToNow } from './format'
 import type { ClientInfoData, ClientStatus } from '../types/client'
 
+import type { NetworkQualityData } from '@shared/network-quality'
+
 export class Client {
+  quality?: NetworkQualityData
   key: string
   user: string
   clientID: string
@@ -17,6 +20,7 @@ export class Client {
   status: ClientStatus
 
   constructor(data: ClientInfoData) {
+    this.quality = data.quality
     this.key = data.key
     this.user = data.user
     this.clientID = data.clientID

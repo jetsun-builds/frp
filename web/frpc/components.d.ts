@@ -23,6 +23,7 @@ declare module 'vue' {
     ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     KeyValueEditor: typeof import('./src/components/KeyValueEditor.vue')['default']
+    NetworkQualityPanel: typeof import('./src/components/NetworkQualityPanel.vue')['default']
     ProxyAuthSection: typeof import('./src/components/proxy-form/ProxyAuthSection.vue')['default']
     ProxyBackendSection: typeof import('./src/components/proxy-form/ProxyBackendSection.vue')['default']
     ProxyBaseSection: typeof import('./src/components/proxy-form/ProxyBaseSection.vue')['default']

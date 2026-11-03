@@ -284,6 +284,7 @@ func (c *Controller) getProxyStatsByTypeAndName(proxyType string, proxyName stri
 
 func buildClientInfoResp(info registry.ClientInfo) model.ClientInfoResp {
 	resp := model.ClientInfoResp{
+		Quality:          info.Quality,
 		Key:              info.Key,
 		User:             info.User,
 		ClientID:         info.ClientID(),

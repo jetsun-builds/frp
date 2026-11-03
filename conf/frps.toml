@@ -1,1 +1,4 @@
 bindPort = 7000
+
+# Optional UDP network-quality probes. Open the same UDP port in your firewall.
+# networkQualityUDPPort = 7001

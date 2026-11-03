@@ -15,6 +15,8 @@
 package v1
 
 import (
+	"fmt"
+
 	"github.com/samber/lo"
 
 	"github.com/fatedier/frp/pkg/config/types"
@@ -22,6 +24,9 @@ import (
 )
 
 type ServerConfig struct {
+	// NetworkQualityUDPPort enables authenticated UDP quality probes. Zero disables
+	// UDP probing. Open this UDP port in the firewall (no ICMP/admin rights needed).
+	NetworkQualityUDPPort int `json:"networkQualityUDPPort,omitempty"`
 	APIMetadata
 
 	Auth AuthServerConfig `json:"auth,omitempty"`
@@ -99,6 +104,9 @@ type ServerConfig struct {
 }
 
 func (c *ServerConfig) Complete() error {
+	if c.NetworkQualityUDPPort < 0 || c.NetworkQualityUDPPort > 65535 {
+		return fmt.Errorf("networkQualityUDPPort must be between 0 and 65535")
+	}
 	if err := c.Auth.Complete(); err != nil {
 		return err
 	}

@@ -1,13 +1,16 @@
-## Improvements
+## Features
+* Per-session FRPC↔FRPS network quality: control RTT, RTT jitter, rolling UDP probe loss and UDP RTT.
+* Session upload/download byte totals and 5-second live stream throughput, shown in FRPS Clients/details and the FRPC admin dashboard/API.
+* Optional authenticated UDP probe listener: set top-level `networkQualityUDPPort = 7001` in frps.toml and allow UDP 7001. No ICMP or administrator privileges required.
 
-* Building frp from source now requires Go 1.26.0 or later.
+## Downloads
+* Linux x86-64: archive includes frps and frpc with embedded dashboards.
+* Windows x86-64: archive includes frps.exe and frpc.exe with embedded dashboards.
+* Verify downloaded archives against SHA256SUMS.
 
-## Fixes
-
-* Updated dependencies to fix SSH tunnel gateway channel deadlocks and panics caused by malformed challenges from NTLM-authenticated HTTP proxies.
-* Fixed VirtualNet routing issues during reconnection and shutdown, and excessive retries after repeated connection failures.
-* Health checks now reset the failure count after success, so `healthCheck.maxFailed` applies to consecutive failures.
-* Fixed control connections getting stuck after message write failures, which could block reconnection.
-* Fixed incorrect daily traffic statistics around daylight-saving transitions and skipped local midnights.
-* Fixed early-data loss in HTTP virtual-host CONNECT tunnels. Requests with a positive content length or transfer encoding now return HTTP 400.
-* Fixed work connections remaining open when server-side bandwidth limiting is enabled for TCP, HTTP, and UDP proxies.
+## Measurement notes
+* Throughput measures used stream bandwidth, not maximum available link capacity. No automatic saturation speed test is performed.
+* UDP loss is round-trip probe failure over the last 60 completed probes with a 1-second timeout. A blocked UDP port can show 100%; disabled/unavailable measurements are null.
+* Both endpoints should use this build for full statistics. Existing endpoint compatibility is retained through optional JSON fields.
+* Explicit transport.proxyURL disables direct UDP probes so the proxy is not bypassed.
+* Statistics reset on reconnect. See the included network-quality.md for API fields, units and configuration.

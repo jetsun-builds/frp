@@ -19,6 +19,7 @@ import (
 
 	adminapi "github.com/fatedier/frp/client/http"
 	"github.com/fatedier/frp/client/proxy"
+	"github.com/fatedier/frp/pkg/netquality"
 	httppkg "github.com/fatedier/frp/pkg/util/http"
 	netpkg "github.com/fatedier/frp/pkg/util/net"
 )
@@ -35,6 +36,7 @@ func (svr *Service) registerRouteHandlers(helper *httppkg.RouterRegisterHelper) 
 	subRouter.Use(httppkg.NewRequestLogger)
 	subRouter.HandleFunc("/api/reload", httppkg.MakeHTTPHandlerFunc(apiController.Reload)).Methods(http.MethodGet)
 	subRouter.HandleFunc("/api/stop", httppkg.MakeHTTPHandlerFunc(apiController.Stop)).Methods(http.MethodPost)
+	subRouter.HandleFunc("/api/network-quality", httppkg.MakeHTTPHandlerFunc(apiController.NetworkQuality)).Methods(http.MethodGet)
 	subRouter.HandleFunc("/api/status", httppkg.MakeHTTPHandlerFunc(apiController.Status)).Methods(http.MethodGet)
 	subRouter.HandleFunc("/api/config", httppkg.MakeHTTPHandlerFunc(apiController.GetConfig)).Methods(http.MethodGet)
 	subRouter.HandleFunc("/api/config", httppkg.MakeHTTPHandlerFunc(apiController.PutConfig)).Methods(http.MethodPut)
@@ -72,6 +74,21 @@ func newAPIController(svr *Service) *adminapi.Controller {
 	return adminapi.NewController(adminapi.ControllerParams{
 		ServerAddr: svr.common.ServerAddr,
 		Manager:    manager,
+		Quality: func() *netquality.Snapshot {
+			svr.ctlMu.RLock()
+			ctl := svr.ctl
+			svr.ctlMu.RUnlock()
+			if ctl == nil {
+				return nil
+			}
+			select {
+			case <-ctl.Done():
+				return nil
+			default:
+			}
+			snapshot := ctl.sessionCtx.Quality.Snapshot()
+			return &snapshot
+		},
 	})
 }
 

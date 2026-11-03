@@ -16,6 +16,7 @@ package model
 
 import (
 	v1 "github.com/fatedier/frp/pkg/config/v1"
+	"github.com/fatedier/frp/pkg/netquality"
 )
 
 type ServerInfoResp struct {
@@ -41,18 +42,19 @@ type ServerInfoResp struct {
 }
 
 type ClientInfoResp struct {
-	Key              string `json:"key"`
-	User             string `json:"user"`
-	ClientID         string `json:"clientID"`
-	RunID            string `json:"runID"`
-	Version          string `json:"version,omitempty"`
-	WireProtocol     string `json:"wireProtocol,omitempty"`
-	Hostname         string `json:"hostname"`
-	ClientIP         string `json:"clientIP,omitempty"`
-	FirstConnectedAt int64  `json:"firstConnectedAt"`
-	LastConnectedAt  int64  `json:"lastConnectedAt"`
-	DisconnectedAt   int64  `json:"disconnectedAt,omitempty"`
-	Online           bool   `json:"online"`
+	Quality          *netquality.Snapshot `json:"quality,omitempty"`
+	Key              string               `json:"key"`
+	User             string               `json:"user"`
+	ClientID         string               `json:"clientID"`
+	RunID            string               `json:"runID"`
+	Version          string               `json:"version,omitempty"`
+	WireProtocol     string               `json:"wireProtocol,omitempty"`
+	Hostname         string               `json:"hostname"`
+	ClientIP         string               `json:"clientIP,omitempty"`
+	FirstConnectedAt int64                `json:"firstConnectedAt"`
+	LastConnectedAt  int64                `json:"lastConnectedAt"`
+	DisconnectedAt   int64                `json:"disconnectedAt,omitempty"`
+	Online           bool                 `json:"online"`
 }
 
 type BaseOutConf struct {

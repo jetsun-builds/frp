@@ -21,6 +21,21 @@
         </el-tag>
       </div>
 
+      <div v-if="client.online && client.quality?.supported" class="card-meta">
+        <span>RTT {{ client.quality.rttMs.toFixed(1) }} ms</span>
+        <span
+          >UDP loss
+          {{
+            client.quality.udpLossPercent == null
+              ? '—'
+              : client.quality.udpLossPercent.toFixed(1) + '%'
+          }}</span
+        >
+        <span
+          >↑ {{ (client.quality.sendBps / 1e6).toFixed(2) }} / ↓
+          {{ (client.quality.receiveBps / 1e6).toFixed(2) }} Mbps</span
+        >
+      </div>
       <div class="card-meta">
         <div class="meta-group">
           <span v-if="client.ip" class="meta-item">

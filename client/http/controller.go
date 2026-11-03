@@ -27,24 +27,28 @@ import (
 	"github.com/fatedier/frp/client/configmgmt"
 	"github.com/fatedier/frp/client/http/model"
 	"github.com/fatedier/frp/client/proxy"
+	"github.com/fatedier/frp/pkg/netquality"
 	httppkg "github.com/fatedier/frp/pkg/util/http"
 	"github.com/fatedier/frp/pkg/util/jsonx"
 )
 
 // Controller handles HTTP API requests for frpc.
 type Controller struct {
+	quality    func() *netquality.Snapshot
 	serverAddr string
 	manager    configmgmt.ConfigManager
 }
 
 // ControllerParams contains parameters for creating an APIController.
 type ControllerParams struct {
+	Quality    func() *netquality.Snapshot
 	ServerAddr string
 	Manager    configmgmt.ConfigManager
 }
 
 func NewController(params ControllerParams) *Controller {
 	return &Controller{
+		quality:    params.Quality,
 		serverAddr: params.ServerAddr,
 		manager:    params.Manager,
 	}
@@ -85,6 +89,14 @@ func (c *Controller) Reload(ctx *httppkg.Context) (any, error) {
 func (c *Controller) Stop(ctx *httppkg.Context) (any, error) {
 	go c.manager.GracefulClose(100 * time.Millisecond)
 	return nil, nil
+}
+
+// NetworkQuality handles GET /api/network-quality. A disconnected client returns null.
+func (c *Controller) NetworkQuality(ctx *httppkg.Context) (any, error) {
+	if c.quality == nil {
+		return nil, nil
+	}
+	return c.quality(), nil
 }
 
 // Status handles GET /api/status
