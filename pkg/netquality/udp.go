@@ -18,12 +18,14 @@ import (
 // a fresh nonce. Unknown/expired sessions receive no reply; replies never amplify.
 const packetSize = 48
 
-type udpSession struct{ lastReply time.Time }
-type UDPServer struct {
-	conn     *net.UDPConn
-	mu       sync.Mutex
-	sessions map[string]*udpSession
-}
+type (
+	udpSession struct{ lastReply time.Time }
+	UDPServer  struct {
+		conn     *net.UDPConn
+		mu       sync.Mutex
+		sessions map[string]*udpSession
+	}
+)
 
 func ListenUDP(addr string) (*UDPServer, error) {
 	a, err := net.ResolveUDPAddr("udp", addr)
@@ -50,12 +52,14 @@ func (s *UDPServer) Register() (string, error) {
 	s.sessions[string(token)] = &udpSession{}
 	return hex.EncodeToString(token), nil
 }
+
 func (s *UDPServer) Remove(token string) {
 	raw, _ := hex.DecodeString(token)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.sessions, string(raw))
 }
+
 func (s *UDPServer) serve() {
 	buf := make([]byte, packetSize+1)
 	for {

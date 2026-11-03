@@ -16,7 +16,7 @@ func TestRollingLossRTTAndRates(t *testing.T) {
 	if s.Snapshot().UDPLossPercent != nil {
 		t.Fatal("unmeasured loss must be null")
 	}
-	for i := 0; i < 60; i++ {
+	for range 60 {
 		s.RecordUDP(false, 0)
 	}
 	s.RecordUDP(true, 2*time.Millisecond)

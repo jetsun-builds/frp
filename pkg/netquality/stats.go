@@ -57,6 +57,7 @@ func (c *countingConn) Read(p []byte) (int, error) {
 	c.stats.received.Add(int64(n))
 	return n, err
 }
+
 func (c *countingConn) Write(p []byte) (int, error) {
 	n, err := c.Conn.Write(p)
 	c.stats.sent.Add(int64(n))
